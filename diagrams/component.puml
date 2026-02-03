@@ -1,0 +1,23 @@
+@startuml
+title Notification Service – Component Diagram (Mocked)
+
+package "Client Layer" {
+    [API Client]
+    [PyQt6 Desktop App]
+}
+
+package "Backend" {
+    [FastAPI Service]
+    [Mock SNS]
+    [Mock SQS]
+}
+
+[API Client] --> [FastAPI Service] : HTTP POST /notifications
+
+[FastAPI Service] --> [Mock SNS] : publish(subject, message)
+
+[Mock SNS] --> [Mock SQS] : sendMessage(payload)
+
+[PyQt6 Desktop App] --> [Mock SQS] : pollMessages()
+
+@enduml
