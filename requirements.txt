@@ -2,3 +2,5 @@ fastapi==0.128.0
 uvicorn==0.40.0
 pyqt6==6.10.2
 requests==2.32.5
+boto3==1.35.67
+python-dotenv==1.2.1
