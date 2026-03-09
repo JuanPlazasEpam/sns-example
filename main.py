@@ -6,12 +6,19 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 
-# Load environment variables from the local .env file (same directory as this file).
-load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
+BASE_DIR = Path(__file__).resolve().parent
+APP_ENV = os.getenv("APP_ENV", "local").lower()
+
+# Load environment variables from an environment-specific file if present.
+# - local: .env
+# - test:  .env.test
+# - prod:  .env.prod
+env_filename = ".env" if APP_ENV == "local" else f".env.{APP_ENV}"
+load_dotenv(dotenv_path=BASE_DIR / env_filename)
 
 BACKEND = os.getenv("NOTIFICATIONS_BACKEND", "mock").lower()
 
-app = FastAPI(title="Notification API")
+app = FastAPI(title=f"Notification API ({APP_ENV})")
 
 
 if BACKEND == "aws":
