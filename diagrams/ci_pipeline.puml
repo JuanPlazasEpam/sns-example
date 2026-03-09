@@ -1,0 +1,37 @@
+@startuml
+title CI Pipeline – Usage and Stages (GitHub Actions)
+
+actor "Developer" as Dev
+actor "Reviewer" as Rev
+
+package "GitHub" {
+  [Repository] as Repo
+  [Pull Request] as PR
+  [GitHub Actions CI\n(.github/workflows/ci.yml)] as CI
+}
+
+package "CI Stages" {
+  [Checkout code] as S1
+  [Install deps\n(requirements.txt + requirements-dev.txt)] as S2
+  [Format check\nruff format --check] as S3
+  [Lint\nruff check] as S4
+  [Unit tests\npytest] as S5
+  [Security scan\nbandit] as S6
+  [Dependency audit\npip-audit] as S7
+}
+
+Dev --> PR : open/update PR
+PR --> CI : triggers workflow
+CI --> S1
+S1 --> S2
+S2 --> S3
+S3 --> S4
+S4 --> S5
+S5 --> S6
+S6 --> S7
+
+CI --> PR : status checks\n(pass/fail)
+Rev --> PR : review + merge when green
+
+@enduml
+
