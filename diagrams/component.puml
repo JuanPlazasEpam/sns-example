@@ -13,21 +13,25 @@ package "Backend" {
 }
 
 package "AWS Cloud" {
-    [SNS Topic]
-    [Main SQS Queue]
-    [DLQ]
+    [SNS Topic (KMS-encrypted)]
+    [Main SQS Queue (KMS-encrypted)]
+    [DLQ (KMS-encrypted)]
+    [IAM Role/User\n(least privilege)]
 }
 
 [API Client] --> [FastAPI Service] : HTTP POST /notifications
 
 [FastAPI Service] --> [AwsSNSService] : publish(subject, message)\n(retries)
 
-[AwsSNSService] --> [SNS Topic] : SNS Publish
-[SNS Topic] --> [Main SQS Queue] : subscription
+[AwsSNSService] --> [SNS Topic (KMS-encrypted)] : SNS Publish
+[SNS Topic (KMS-encrypted)] --> [Main SQS Queue (KMS-encrypted)] : subscription
 
 [PyQt6 Desktop App] --> [AwsSQS Consumer] : HTTP GET /mock-sqs/receive
-[AwsSQS Consumer] --> [Main SQS Queue] : receive/delete\n(with retries)
+[AwsSQS Consumer] --> [Main SQS Queue (KMS-encrypted)] : receive/delete\n(with retries)
 
-[Main SQS Queue] --> [DLQ] : redrive on maxReceiveCount
+[Main SQS Queue (KMS-encrypted)] --> [DLQ (KMS-encrypted)] : redrive on maxReceiveCount
+
+[IAM Role/User\n(least privilege)] --> [SNS Topic (KMS-encrypted)] : allow sns:Publish
+[IAM Role/User\n(least privilege)] --> [Main SQS Queue (KMS-encrypted)] : allow sqs:Receive/Delete/GetAttributes
 
 @enduml

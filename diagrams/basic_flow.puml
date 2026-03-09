@@ -1,17 +1,19 @@
 @startuml
-title Notification Flow (AWS SNS + SQS with Retries)
+title Notification Flow (AWS SNS + SQS with Retries, IAM, and KMS)
 
 actor "API Client" as Client
 participant "FastAPI Service" as API
 participant "AwsSNSService" as SNS
-participant "SQS Queue" as SQS
-participant "SQS DLQ" as DLQ
+participant "IAM Role/User" as IAM
+participant "SQS Queue (KMS)" as SQS
+participant "SQS DLQ (KMS)" as DLQ
 participant "PyQt6 Desktop App" as Desktop
 
 Client -> API: POST /notifications\n(subject, message)
 
 API -> API: validateRequest()
 
+API -> IAM: signed AWS request\n(temporary or user credentials)
 API -> SNS: publish(subject, message)\n(retries on transient errors)
 
 SNS -> SQS: sendMessage(payload)

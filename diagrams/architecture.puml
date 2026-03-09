@@ -12,15 +12,19 @@ package "Python Services" {
 }
 
 package "AWS Cloud" {
-  [SNS Topic] as E
-  [Main SQS Queue] as F
-  [DLQ] as G
+  [SNS Topic (KMS-encrypted)] as E
+  [Main SQS Queue (KMS-encrypted)] as F
+  [DLQ (KMS-encrypted)] as G
+  [IAM Role/User\n(least privilege)] as H
 }
 
 A --> B : HTTP POST /notifications
 B --> C : publish(subject, message)\n(retries on transient errors)
 C --> E : SNS Publish
 E --> F : subscription
+
+H --> E : allows sns:Publish
+H --> F : allows sqs:Receive/Delete/GetAttributes
 
 A --> B : HTTP GET /mock-sqs/receive
 B --> D : receive_message()

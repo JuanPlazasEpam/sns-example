@@ -13,28 +13,69 @@ provider "aws" {
   region = var.aws_region
 }
 
-# SNS topic
+# SNS topic (KMS-encrypted)
 resource "aws_sns_topic" "main" {
-  name = "${var.project_name}-topic"
+  name            = "${var.project_name}-topic"
+  kms_master_key_id = "alias/aws/sns"
 }
 
-# Dead-letter queue for failed messages
+# Dead-letter queue for failed messages (KMS-encrypted)
 resource "aws_sqs_queue" "dlq" {
   name                      = "${var.project_name}-dlq"
   message_retention_seconds = 1209600 # 14 days
+  kms_master_key_id         = "alias/aws/sqs"
 }
 
-# Main SQS queue
+# Main SQS queue (KMS-encrypted)
 resource "aws_sqs_queue" "main" {
   name                       = "${var.project_name}-queue"
   visibility_timeout_seconds = 30
   message_retention_seconds  = 86400
+  kms_master_key_id          = "alias/aws/sqs"
 
   # Redrive policy: send messages to DLQ after several failed receives.
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
     maxReceiveCount     = 5
   })
+}
+
+resource "aws_iam_user" "app_user" {
+  name = "${var.project_name}-app-user"
+}
+
+resource "aws_iam_access_key" "app_user_key" {
+  user = aws_iam_user.app_user.name
+}
+
+data "aws_iam_policy_document" "app_user_policy_doc" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "sns:Publish",
+    ]
+    resources = [
+      aws_sns_topic.main.arn,
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+    ]
+    resources = [
+      aws_sqs_queue.main.arn,
+    ]
+  }
+}
+
+resource "aws_iam_user_policy" "app_user_policy" {
+  name   = "${var.project_name}-app-policy"
+  user   = aws_iam_user.app_user.name
+  policy = data.aws_iam_policy_document.app_user_policy_doc.json
 }
 
 # Allow SNS topic to send messages to the SQS queue
