@@ -1,0 +1,32 @@
+@startuml NotificationSystemArchitecture
+title Notification system architecture
+
+package "Client" {
+  [Desktop App / HTTP Client] as A
+}
+
+package "Python Services" {
+  [FastAPI App (main.py)] as B
+  [AwsSNSService (services/aws_sns.py)] as C
+  [receive_message (services/aws_sqs.py)] as D
+}
+
+package "AWS Cloud" {
+  [SNS Topic] as E
+  [SQS Queue] as F
+  [Optional DLQ] as G
+}
+
+A --> B : HTTP POST /notifications
+B --> C : publish(subject, message)
+C --> E : SNS Publish
+E --> F : subscription
+
+A --> B : HTTP GET /mock-sqs/receive
+B --> D : receive_message()
+D --> F : SQS Receive/Delete
+
+F --> G : on failure / maxReceiveCount
+
+@enduml
+

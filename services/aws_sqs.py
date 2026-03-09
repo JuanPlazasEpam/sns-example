@@ -44,11 +44,14 @@ def receive_message() -> Optional[Dict]:
         }
     }
     """
-    resp = _SQS_CLIENT.receive_message(
-        QueueUrl=_QUEUE_URL,
-        MaxNumberOfMessages=1,
-        WaitTimeSeconds=1,
-    )
+    try:
+        resp = _SQS_CLIENT.receive_message(
+            QueueUrl=_QUEUE_URL,
+            MaxNumberOfMessages=1,
+            WaitTimeSeconds=1,
+        )
+    except _SQS_CLIENT.exceptions.QueueDoesNotExist:
+        raise RuntimeError(f"SQS queue at URL '{_QUEUE_URL}' does not exist.")
 
     messages = resp.get("Messages")
     if not messages:
