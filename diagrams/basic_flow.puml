@@ -1,17 +1,18 @@
 @startuml
-title Notification Flow (Mocked SNS + SQS)
+title Notification Flow (AWS SNS + SQS with Retries)
 
 actor "API Client" as Client
 participant "FastAPI Service" as API
-participant "Mock SNS" as SNS
-participant "Mock SQS" as SQS
+participant "AwsSNSService" as SNS
+participant "SQS Queue" as SQS
+participant "SQS DLQ" as DLQ
 participant "PyQt6 Desktop App" as Desktop
 
 Client -> API: POST /notifications\n(subject, message)
 
 API -> API: validateRequest()
 
-API -> SNS: publish(subject, message)
+API -> SNS: publish(subject, message)\n(retries on transient errors)
 
 SNS -> SQS: sendMessage(payload)
 
@@ -20,5 +21,7 @@ loop Poll every 1s
     SQS --> Desktop: message(subject, message)
     Desktop -> Desktop: displayNotification()
 end
+
+SQS --> DLQ: redrive on maxReceiveCount
 
 @enduml

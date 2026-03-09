@@ -13,20 +13,20 @@ package "Python Services" {
 
 package "AWS Cloud" {
   [SNS Topic] as E
-  [SQS Queue] as F
-  [Optional DLQ] as G
+  [Main SQS Queue] as F
+  [DLQ] as G
 }
 
 A --> B : HTTP POST /notifications
-B --> C : publish(subject, message)
+B --> C : publish(subject, message)\n(retries on transient errors)
 C --> E : SNS Publish
 E --> F : subscription
 
 A --> B : HTTP GET /mock-sqs/receive
 B --> D : receive_message()
-D --> F : SQS Receive/Delete
+D --> F : SQS Receive/Delete\n(with receive retries)
 
-F --> G : on failure / maxReceiveCount
+F --> G : redrive to DLQ\non maxReceiveCount
 
 @enduml
 

@@ -18,11 +18,23 @@ resource "aws_sns_topic" "main" {
   name = "${var.project_name}-topic"
 }
 
-# SQS queue
+# Dead-letter queue for failed messages
+resource "aws_sqs_queue" "dlq" {
+  name                      = "${var.project_name}-dlq"
+  message_retention_seconds = 1209600 # 14 days
+}
+
+# Main SQS queue
 resource "aws_sqs_queue" "main" {
   name                       = "${var.project_name}-queue"
   visibility_timeout_seconds = 30
   message_retention_seconds  = 86400
+
+  # Redrive policy: send messages to DLQ after several failed receives.
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.dlq.arn
+    maxReceiveCount     = 5
+  })
 }
 
 # Allow SNS topic to send messages to the SQS queue

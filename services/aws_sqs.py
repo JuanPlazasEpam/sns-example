@@ -1,12 +1,15 @@
 import os
 import json
+import time
 from typing import Dict, Optional
 
 import boto3
+from botocore.exceptions import ClientError
 
 
 _REGION = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 _QUEUE_URL = os.getenv("AWS_SQS_QUEUE_URL") or os.getenv("SQS_QUEUE_URL")
+_MAX_RECEIVE_RETRIES = int(os.getenv("SQS_RECEIVE_MAX_RETRIES", "3"))
 
 if not _QUEUE_URL:
     raise RuntimeError("AWS_SQS_QUEUE_URL or SQS_QUEUE_URL environment variable must be set for AWS backend.")
@@ -33,6 +36,27 @@ def _normalize_sns_sqs_body(raw_body: str) -> Dict[str, str]:
     return {"Subject": subject, "Message": message}
 
 
+def _receive_with_retry() -> Optional[Dict]:
+    """
+    Wrap SQS receive_message with a simple retry strategy for transient errors.
+    """
+    attempt = 0
+    while True:
+        try:
+            return _SQS_CLIENT.receive_message(
+                QueueUrl=_QUEUE_URL,
+                MaxNumberOfMessages=1,
+                WaitTimeSeconds=1,
+            )
+        except ClientError as exc:
+            # Retry on transient AWS or network errors.
+            attempt += 1
+            if attempt >= _MAX_RECEIVE_RETRIES:
+                raise
+            sleep_seconds = 2**attempt
+            time.sleep(sleep_seconds)
+
+
 def receive_message() -> Optional[Dict]:
     """
     Receive a single message from the real SQS queue and normalize it to:
@@ -45,11 +69,7 @@ def receive_message() -> Optional[Dict]:
     }
     """
     try:
-        resp = _SQS_CLIENT.receive_message(
-            QueueUrl=_QUEUE_URL,
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=1,
-        )
+        resp = _receive_with_retry()
     except _SQS_CLIENT.exceptions.QueueDoesNotExist:
         raise RuntimeError(f"SQS queue at URL '{_QUEUE_URL}' does not exist.")
 

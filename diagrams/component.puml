@@ -1,5 +1,5 @@
 @startuml
-title Notification Service – Component Diagram (Mocked)
+title Notification Service – Component Diagram (AWS)
 
 package "Client Layer" {
     [API Client]
@@ -8,16 +8,26 @@ package "Client Layer" {
 
 package "Backend" {
     [FastAPI Service]
-    [Mock SNS]
-    [Mock SQS]
+    [AwsSNSService]
+    [AwsSQS Consumer]
+}
+
+package "AWS Cloud" {
+    [SNS Topic]
+    [Main SQS Queue]
+    [DLQ]
 }
 
 [API Client] --> [FastAPI Service] : HTTP POST /notifications
 
-[FastAPI Service] --> [Mock SNS] : publish(subject, message)
+[FastAPI Service] --> [AwsSNSService] : publish(subject, message)\n(retries)
 
-[Mock SNS] --> [Mock SQS] : sendMessage(payload)
+[AwsSNSService] --> [SNS Topic] : SNS Publish
+[SNS Topic] --> [Main SQS Queue] : subscription
 
-[PyQt6 Desktop App] --> [Mock SQS] : pollMessages()
+[PyQt6 Desktop App] --> [AwsSQS Consumer] : HTTP GET /mock-sqs/receive
+[AwsSQS Consumer] --> [Main SQS Queue] : receive/delete\n(with retries)
+
+[Main SQS Queue] --> [DLQ] : redrive on maxReceiveCount
 
 @enduml

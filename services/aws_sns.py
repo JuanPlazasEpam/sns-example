@@ -1,7 +1,9 @@
 import os
+import time
 import uuid
 
 import boto3
+from botocore.exceptions import ClientError
 
 
 class AwsSNSService:
@@ -17,9 +19,10 @@ class AwsSNSService:
             raise RuntimeError("AWS_SNS_TOPIC_ARN or SNS_TOPIC_ARN environment variable must be set for AWS backend.")
 
         self.client = boto3.client("sns", region_name=self.region)
+        self._max_publish_retries = int(os.getenv("SNS_PUBLISH_MAX_RETRIES", "3"))
 
     def publish(self, subject: str, message: str):
-        """Publish a notification to a real SNS topic."""
+        """Publish a notification to a real SNS topic with basic retry on transient errors."""
         kwargs = {
             "TopicArn": self.topic_arn,
             "Subject": subject,
@@ -32,8 +35,21 @@ class AwsSNSService:
             # Use a random deduplication ID so each message is treated as unique.
             kwargs["MessageDeduplicationId"] = str(uuid.uuid4())
 
-        response = self.client.publish(**kwargs)
+        attempt = 0
+        while True:
+            try:
+                response = self.client.publish(**kwargs)
+                # Normalize return shape to match the mock service.
+                return {"MessageId": response.get("MessageId")}
+            except ClientError as exc:
+                error_code = exc.response.get("Error", {}).get("Code", "")
+                # Only retry on clearly transient errors.
+                if error_code not in {"Throttling", "ThrottlingException", "InternalError"}:
+                    raise
 
-        # Normalize return shape to match the mock service.
-        return {"MessageId": response.get("MessageId")}
+                attempt += 1
+                if attempt >= self._max_publish_retries:
+                    raise
 
+                sleep_seconds = 2**attempt
+                time.sleep(sleep_seconds)
