@@ -17,6 +17,7 @@ package "AWS Cloud" {
     [Main SQS Queue (KMS-encrypted)]
     [DLQ (KMS-encrypted)]
     [IAM Role/User\n(least privilege)]
+    [CloudWatch Logs & Metrics]
 }
 
 [API Client] --> [FastAPI Service] : HTTP POST /notifications
@@ -33,5 +34,7 @@ package "AWS Cloud" {
 
 [IAM Role/User\n(least privilege)] --> [SNS Topic (KMS-encrypted)] : allow sns:Publish
 [IAM Role/User\n(least privilege)] --> [Main SQS Queue (KMS-encrypted)] : allow sqs:Receive/Delete/GetAttributes
+
+[FastAPI Service] --> [CloudWatch Logs & Metrics] : logs + metrics
 
 @enduml

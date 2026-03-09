@@ -16,6 +16,7 @@ package "AWS Cloud" {
   [Main SQS Queue (KMS-encrypted)] as F
   [DLQ (KMS-encrypted)] as G
   [IAM Role/User\n(least privilege)] as H
+  [CloudWatch Logs & Metrics] as CW
 }
 
 A --> B : HTTP POST /notifications
@@ -25,6 +26,7 @@ E --> F : subscription
 
 H --> E : allows sns:Publish
 H --> F : allows sqs:Receive/Delete/GetAttributes
+H --> CW : allows cloudwatch:PutMetricData
 
 A --> B : HTTP GET /mock-sqs/receive
 B --> D : receive_message()

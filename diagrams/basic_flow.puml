@@ -5,6 +5,7 @@ actor "API Client" as Client
 participant "FastAPI Service" as API
 participant "AwsSNSService" as SNS
 participant "IAM Role/User" as IAM
+participant "CloudWatch (Logs & Metrics)" as CW
 participant "SQS Queue (KMS)" as SQS
 participant "SQS DLQ (KMS)" as DLQ
 participant "PyQt6 Desktop App" as Desktop
@@ -15,6 +16,7 @@ API -> API: validateRequest()
 
 API -> IAM: signed AWS request\n(temporary or user credentials)
 API -> SNS: publish(subject, message)\n(retries on transient errors)
+API -> CW: log + NotificationsPublished metric
 
 SNS -> SQS: sendMessage(payload)
 
