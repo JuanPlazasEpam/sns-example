@@ -1,0 +1,45 @@
+@startuml
+title Project Structure – Modules and Tests
+
+package "Root (sns-example)" {
+  [main.py]
+  [requirements.txt]
+  [Dockerfile]
+}
+
+package "services" {
+  [aws_sns.py]
+  [aws_sqs.py]
+  [metrics.py]
+  [mock_sns.py]
+  [mock_sqs.py]
+}
+
+package "infra" {
+  [main.tf]
+  [variables.tf]
+  [outputs.tf]
+  [terraform.tfvars]
+  [test.tfvars]
+  [prod.tfvars]
+}
+
+package "diagrams" {
+  [architecture.puml]
+  [component.puml]
+  [basic_flow.puml]
+  [project_structure.puml]
+}
+
+package "tests" {
+  [test_main.py]
+  [test_aws_sns.py]
+  [test_aws_sqs.py]
+}
+
+[test_main.py] ..> [main.py] : imports FastAPI app
+[test_aws_sns.py] ..> [aws_sns.py]
+[test_aws_sqs.py] ..> [aws_sqs.py]
+
+@enduml
+

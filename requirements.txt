@@ -4,3 +4,4 @@ pyqt6==6.10.2
 requests==2.32.5
 boto3==1.35.67
 python-dotenv==1.2.1
+pytest
